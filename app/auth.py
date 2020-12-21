@@ -7,7 +7,7 @@ from sanic.log import logger
 
 import jwt
 
-from app.response_func import unauthorized, invalid_token
+from app.utils import unauthorized, invalid_token, response_func
 
 
 def auth_required(func):
@@ -19,12 +19,12 @@ def auth_required(func):
         # checking for Authorization header
         token_header = request.headers.get('Authorization')
         if token_header is None:
-            return unauthorized()
+            return response_func(msg= 'unauthorized',details='missing Bearer token in headers')
 
         # extracting token from the header
         token_match = re.compile(r'Bearer (.*)').search(token_header)
         if not token_match:
-            return unauthorized()
+            return response_func(msg='unauthorized',details='missing Bearer token in headers')
         token = token_match.group(1)
         secret, hash_algo = request.app.config['SECRET'], request.app.config['JWT_HASH_ALGO']
 
@@ -32,14 +32,14 @@ def auth_required(func):
         try:
             payload = jwt.decode(token, secret, algorithms=[hash_algo])
         except jwt.exceptions.InvalidTokenError:
-            return invalid_token()
+            return response_func(msg='invalid token')
 
         username, password = payload.get('username'), payload.get('password')
         if username is None or password is None:
-            return invalid_token()
+            return response_func(msg='invalid token')
 
         if not validate_user_password(request.app.config['PASSWORD_FILE'], username, password):
-            return invalid_token()
+            return response_func(msg='invalid token')
 
         # if reached to this point, the user is authorized
         return func(*args, **kwargs)

@@ -5,7 +5,7 @@ from sanic import Sanic
 from app.auth import auth_required, validate_user_password
 
 from app import config
-from app.response_func import invalid_body, invalid_credentials, missing_credentials
+from app.utils import invalid_body, invalid_credentials, missing_credentials, response_func
 from app.auth import auth_required
 
 
@@ -18,14 +18,14 @@ def auth(request):
 
     body = request.json
     if not isinstance(body, dict):
-        return invalid_body()
+        return response_func(msg='invalid body', details='body should be a json object')
 
     username, password = body.get('username'), body.get('password')
     if username is None or password is None:
-        return missing_credentials()
+        return response_func(msg='missing password or username')
 
     if not validate_user_password(request.app.config['PASSWORD_FILE'], username, password):
-        return invalid_credentials()
+        return response_func(msg='invalid password or username')
 
     secret, hash_algo = request.app.config['SECRET'], request.app.config['JWT_HASH_ALGO']
 
